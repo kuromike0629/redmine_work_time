@@ -1,0 +1,9 @@
+<%= form_with model: TimeCard.new, :url => {:action => :update_time_card} do |form| %>
+<p>勤務日</p>
+  <%= form.date_field :work_date, value: @this_date.strftime("%Y-%m-%d")%>
+<p>出勤時間</p>
+ <%= form.time_field :start_time, value: @time_card_start_time.strftime("%H:%M") %>
+<p>退勤時間</p>
+  <%= form.time_field :end_time, value: @time_card_end_time.strftime("%H:%M") %>
+<p><%= form.submit "登録"%></p>
+<% end %>

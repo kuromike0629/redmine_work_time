@@ -55,6 +55,10 @@ class WorkTimeController < ApplicationController
     end
   end
 
+  def update_time_card
+    redirect_to :index
+  end
+
   def member_monthly_data
     require_login || return
     if params.key?(:id) then
@@ -612,6 +616,14 @@ private
                     :year=>year, :month=>month, :day=>day,
                     :user=>@this_uid, :prj=>@restrict_project}
     @is_registerd_backlog = false
+
+    @time_card = TimeCard.find_by(user_id: User.current.id,work_date: @this_date)
+
+    @time_card_start_time = @time_card.nil? ? Time.local(year,month,day,9,0,0) : @time_card.start_time
+    @time_card_end_time =  @time_card.nil? ? Time.local(year,month,day,18,0,0) : @time_card.end_time
+
+    @time_cards = TimeCard.find_by(user_id: User.current.id)
+
     begin
       Redmine::Plugin.find :redmine_backlogs
       @is_registerd_backlog = true
