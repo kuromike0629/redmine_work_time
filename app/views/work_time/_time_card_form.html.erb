@@ -7,3 +7,5 @@
   <%= form.time_field :end_time, value: @time_card_end_time.strftime("%H:%M") %>
 <p><%= form.submit "登録"%></p>
 <% end %>
+
+<%= button_to '削除','/work_time/delete_time_card', params: {work_date: @this_date.to_s} %>

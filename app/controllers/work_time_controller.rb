@@ -56,10 +56,32 @@ class WorkTimeController < ApplicationController
   end
 
   def update_time_card
-    redirect_to :index
+    @work_date = Date.parse(params[:time_card][:work_date])
+    @start_time = Time.zone.parse(params[:time_card][:start_time])
+    @end_time = Time.zone.parse(params[:time_card][:end_time])
+    @login_user = User.current
+    @time_card = TimeCard.find_or_create_by(user_id: @login_user.id, work_date: @work_date) do |card|
+      card.user_id = @login_user.id
+      card.work_date = @work_date
+      card.start_time = @start_time
+      card.end_time = @end_time
+    end
+    @time_card.update(
+      user_id: @login_user.id,
+      work_date: @work_date,
+      start_time: @start_time,
+      end_time: @end_time
+    )
+    redirect_to action: :index
   end
 
-  def member_monthly_data
+  def delete_time_card
+
+    TimeCard.find_by(user_id: User.current.id, work_date: params[:work_date]).destroy
+    redirect_to action: :index
+  end
+
+  def member_monthly_date
     require_login || return
     if params.key?(:id) then
       find_project
@@ -100,15 +122,15 @@ class WorkTimeController < ApplicationController
       csv_data << %Q|,"#{date}"|
     end
     csv_data << "\n"
-    
+
     @month_pack[:odr_prjs].each do |prj_pack|
       next if prj_pack[:count_issues] == 0
       prj_pack[:odr_issues].each do |issue_pack|
         next if issue_pack[:count_hours] == 0
         issue = issue_pack[:issue]
-        
+
         csv_data << %Q|"##{issue.id} #{issue.subject}"|
-        
+
         (@first_date..@last_date).each do |date|
           if issue_pack[:total_by_day].has_key?(date) then
             csv_data << %Q|,"#{issue_pack[:total_by_day][date]}"|
@@ -116,7 +138,7 @@ class WorkTimeController < ApplicationController
             csv_data << %Q|,""|
           end
         end
-        
+
         csv_data << "\n"
       end
     end
@@ -146,7 +168,7 @@ class WorkTimeController < ApplicationController
     change_project_position
     member_add_del_check
     calc_total
-    
+
     csv_data = %Q|"user","relayed project","relayed ticket","project","ticket","spent time"\n|
     #-------------------------------------- メンバーのループ
     @members.each do |mem_info|
@@ -163,7 +185,7 @@ class WorkTimeController < ApplicationController
         next unless @prj_cost[dsp_prj].key?(-1) # 値の無いプロジェクトはパス
         next if @prj_cost[dsp_prj][-1] == 0 # 値の無いプロジェクトはスパ
         prj =Project.find_by_id(dsp_prj)
-        
+
         #-------------------------------------- チケットのループ
         tickets = WtTicketRelay.order("position").all
         tickets.each do |tic|
@@ -281,7 +303,7 @@ class WorkTimeController < ApplicationController
     change_project_position
     member_add_del_check
     calc_total
-    
+
     csv_data = %Q|"user","project","ticket","spent time"\n|
     #-------------------------------------- メンバーのループ
     @members.each do |mem_info|
@@ -298,7 +320,7 @@ class WorkTimeController < ApplicationController
         next unless @r_prj_cost[dsp_prj].key?(-1) # 値の無いプロジェクトはパス
         next if @r_prj_cost[dsp_prj][-1] == 0 # 値の無いプロジェクトはスパ
         prj =Project.find_by_id(dsp_prj)
-        
+
         #-------------------------------------- チケットのループ
         tickets = WtTicketRelay.order("position").all
         tickets.each do |tic|
@@ -622,7 +644,7 @@ private
     @time_card_start_time = @time_card.nil? ? Time.local(year,month,day,9,0,0) : @time_card.start_time
     @time_card_end_time =  @time_card.nil? ? Time.local(year,month,day,18,0,0) : @time_card.end_time
 
-    @time_cards = TimeCard.find_by(user_id: User.current.id)
+    @time_cards = TimeCard.where(user_id: User.current.id)
 
     begin
       Redmine::Plugin.find :redmine_backlogs
@@ -929,7 +951,7 @@ private
       end
       pos += 1
     end
-    
+
   end
 
   def update_daily_memo(text, append = false) # 日ごとメモの更新
